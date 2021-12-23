@@ -29,12 +29,6 @@ from itertools import product as itert_prod
 
 print('Current recursion limit: ', sys.getrecursionlimit())
 
-
-def int_near(x):
-    if x - int(x) < 0.5:
-        return int(x)
-    else:
-        return int(x)+1
     
     
 def norm_pdf(x, mu, sigma, infty = False):
@@ -55,6 +49,9 @@ def norm_cdf(x, mu, sigma, infty = False):
     return norm.cdf(x, mu, sigma)
     
 def trunc_norm_pdf(x, mu, sigma, a, b, infty = False):
+
+    if (x < a) or (x > b):
+        return 0.0
     
     if infty == True:
         return norm_pdf(x, mu, sigma, True) / float(norm_cdf(b, mu, sigma, True) - norm_cdf(a, mu, sigma, True))
@@ -65,7 +62,7 @@ def trunc_norm_pdf(x, mu, sigma, a, b, infty = False):
 
 
 
-class B:
+class K:
     
     def __init__(self, params, measure, max_poly_degree = 3, infty = False):
         
@@ -118,14 +115,12 @@ class B:
         if infty == True:
             
             if len(params.keys()) == 1:
-                print('1! We are here')
                 return float(mp.quad(lambda x: func(x), 
                                      [params[1]['start'], params[1]['stop']]
                                     )
                             )
             
             elif len(params.keys()) == 2:
-                print('2! We are here')
                 return float(mp.quad(lambda x, y: func(x, y), 
                                      [params[1]['start'], params[1]['stop']], 
                                      [params[2]['start'], params[2]['stop']], 
@@ -368,15 +363,10 @@ class B:
                 return res
             
             def inner_product(*args):
-                # return function(*args) * poly_set_func(args) * mes_func(args) 
                 tmp = function(*args) * poly_set_func(args) * mes_func(args)
                 return tmp
             
-            #for key in params.keys():
-            #    def inner_product(*args, cur_key = key, cur_inn = inner_product): 
-            #        return cur_inn(*args) * ort_polys_collection[key][poly_set[key]](args[key-1]) * measure[key](args[key-1])
 
-            #coef.append(self.Fourier_integral(inner_product, params))
             coef.append(self.Fourier_integral(inner_product, params, infty = self.is_Infty))
             
         self.cur_Fourier_coefficients = coef
@@ -428,18 +418,7 @@ class B:
     def error_estimator(self, function):
         
         params = self.params
-        '''
-        _range = []
-        square = 1
-        opts0 = []
-        for j in params.keys():
-            tmp_r = [params[j]['start'], params[j]['stop']]
-            square *= params[j]['stop'] - params[j]['start']
-            _range.append(tmp_r)
-            
-            tmp_op = params[j]['opts']
-            opts0.append(tmp_op)
-        '''
+
         
         def numerator(*args):
             y = self.cur_mono_coefficients
@@ -453,8 +432,7 @@ class B:
             return tmp_res #np.where(np.isnan(tmp_res), 0, tmp_res)+0
         
         
-        #res = self.Fourier_integral(numerator, params)
         res = self.Fourier_integral(numerator, params, infty = self.is_Infty)
-        #res= nquad(numerator, _range, opts = opts0, full_output=False)[0] #/ square
+        
         
         return np.sqrt(res)
